@@ -1,10 +1,11 @@
 import numpy as np
+import scipy
 
 # network Class description
 
 
 class Network:
-    def __init__(self, network=None):
+    def __init__(self, network=None, sparse=False):
         self.busNo = None            # number of busses
         self.vbase = None            # kV base voltage for normalisation
         self.sbase = None            # kVA apparent power for normalisation
@@ -18,6 +19,7 @@ class Network:
         self.V_slack = None           # voltage of slack node (normalised if loads are normalised)
         self.node_voltages = None
         self.line_currents = None
+        self.sparse = sparse        # whether to store graphs in sparse format or not
         if network=="network37":
             self.load_network73()
 
@@ -85,6 +87,10 @@ class Network:
         self.node_b = node_b
         self.line_z_pu = line_z_pu
         self.load_powers = load_powers
-        self.current_graph = current_graph
-        self.voltage_graph = voltage_graph
+        if self.sparse:
+            self.current_graph = scipy.sparse.csr_matrix(current_graph)
+            self.voltage_graph = scipy.sparse.csr_matrix(voltage_graph)
+        else:
+            self.current_graph = current_graph
+            self.voltage_graph = voltage_graph
         self.V_slack = 1. + 0.j

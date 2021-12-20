@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.linalg import solve_triangular
+from scipy.sparse.linalg import spsolve_triangular
 
 # implementation of backwardforwardsweepsolver
 # assumes LV network, slack bus is first node, and PQ loads only
@@ -8,7 +9,8 @@ def backwardforwardsweep(network, max_iter=100, tolerance=1e-10):
     busNo = network.busNo
     V_slack = network.V_slack
     node_a = network.node_a
-    node_b = network.node_b
+    sparse = network.sparse
+    # node_b = network.node_b
     line_z_pu = network.line_z_pu
     current_graph = network.current_graph
     voltage_graph = network.voltage_graph
@@ -22,9 +24,14 @@ def backwardforwardsweep(network, max_iter=100, tolerance=1e-10):
     for iter in range(max_iter):
         ## backward sweep (calculate currents for fixed voltages)
         load_currents = np.conj(load_powers[1:]) / np.conj(node_voltages)  # ignore load_current at slack node
-        new_currents = solve_triangular(current_graph, load_currents,
-                                        unit_diagonal=True,
-                                        check_finite=False)
+        if sparse:
+            new_currents = spsolve_triangular(current_graph, load_currents,
+                                            unit_diagonal=True,
+                                              lower=False)
+        else:
+            new_currents = solve_triangular(current_graph, load_currents,
+                                            unit_diagonal=True,
+                                            check_finite=False)
         current_diff = line_currents - new_currents
         line_currents = 1. * new_currents
 
@@ -33,7 +40,10 @@ def backwardforwardsweep(network, max_iter=100, tolerance=1e-10):
         line_voltages = np.expand_dims(line_z_pu, 1) * line_currents
         btmp = -1. * line_voltages
         btmp[0] = btmp[0] + V_slack
-        new_voltages = solve_triangular(voltage_graph, btmp, lower=True, unit_diagonal=True, check_finite=False)
+        if sparse:
+            new_voltages = spsolve_triangular(voltage_graph, btmp, lower=True, unit_diagonal=True)
+        else:
+            new_voltages = solve_triangular(voltage_graph, btmp, lower=True, unit_diagonal=True, check_finite=False)
         voltage_diff = node_voltages - new_voltages
         node_voltages = 1. * new_voltages
         max_diff = np.maximum(np.max(np.abs(voltage_diff)), np.max(np.abs(current_diff)))
