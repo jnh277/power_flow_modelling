@@ -21,9 +21,13 @@ class Network:
         self.line_currents = None
         self.sparse = sparse        # whether to store graphs in sparse format or not
         if network=="network37":
-            self.load_network73()
+            self.load_network37()
+        elif network=="test5":
+            self.load_test_5()
+        elif network=='single branch':
+            self.load_single_branch()
 
-    def load_network73(self):
+    def load_network37(self):
         busNo = 37
         vbase = 4.8 / np.sqrt(3)  # kV Base voltage for normalization
         sbase = 100  # kVA Base apparent power for normalization
@@ -94,3 +98,79 @@ class Network:
             self.current_graph = current_graph
             self.voltage_graph = voltage_graph
         self.V_slack = 1. + 0.j
+
+    def load_test_5(self):
+        busNo = 5       # 5 busses including slack bus
+        vbase = 4.8 / np.sqrt(3)  # kV Base voltage for normalization
+        sbase = 100  # kVA Base apparent power for normalization
+        zbase = 1000 * vbase ** 2 / sbase  # ohm
+        z3 = 1.2936 + 0.6713j
+        length = [0.2, 0.3504, 0.1818, 0.2500]      # line lengths
+        node_a = np.array([0, 1, 1, 3])
+        node_b = [1, 2, 3, 4]
+        line_z_pu = np.array([z3 * length[0] / zbase, z3 * length[1] / zbase,
+                              z3 * length[2] / zbase, z3 * length[3] / zbase])
+        P_load = np.array([0, 0, 140, 85, 140], dtype=np.double)
+        Q_load = np.array([0, 0, 70, 40, 70], np.double())
+        load_powers = np.expand_dims(P_load / sbase + 1j * Q_load / sbase, 1) # craete one normalised load array
+        current_graph = np.zeros((busNo, len(node_a)))
+        for i in range(len(node_a)):
+            a = node_a[i]
+            b = node_b[i]
+            current_graph[a, i] = -1.
+            current_graph[b, i] = 1.
+        current_graph = current_graph[1:,:]  # remove slack node as we assume it can provide requried current // todo: reform this so nodes other than 0 can be slack
+        voltage_graph = current_graph.T
+        self.busNo = busNo
+        self.vbase = vbase
+        self.sbase = sbase
+        self.node_a = node_a
+        self.node_b = node_b
+        self.line_z_pu = line_z_pu
+        self.load_powers = load_powers
+        self.current_graph = current_graph
+        self.voltage_graph = voltage_graph
+        self.V_slack = 1. + 0.j
+        self.zbase = zbase
+        self.length = length
+        self.zpk = z3/ zbase
+
+    def load_single_branch(self):
+        busNo = 10       # 5 busses including slack bus
+        vbase = 4.8 / np.sqrt(3)  # kV Base voltage for normalization
+        sbase = 100  # kVA Base apparent power for normalization
+        zbase = 1000 * vbase ** 2 / sbase  # ohm
+        z3 = 1.2936 + 0.6713j
+        # length = [0.2, 0.3504, 0.1818, 0.2500]      # line lengths
+        length = [0.2] * (busNo-1)
+        # node_a = np.array([0, 1, 2, 3])
+        # node_b = [1, 2, 3, 4]
+        node_a = np.arange(busNo-1)
+        node_b = np.arange(1, busNo)
+        # line_z_pu = np.array([z3 * length[0] / zbase, z3 * length[1] / zbase,
+        #                       z3 * length[2] / zbase, z3 * length[3] / zbase])
+        line_z_pu = np.array(length) * z3/zbase
+        P_load = np.array([0, 0, 140, 85, 140], dtype=np.double)
+        Q_load = np.array([0, 0, 70, 40, 70], np.double())
+        load_powers = np.expand_dims(P_load / sbase + 1j * Q_load / sbase, 1) # craete one normalised load array
+        current_graph = np.zeros((busNo, len(node_a)))
+        for i in range(len(node_a)):
+            a = node_a[i]
+            b = node_b[i]
+            current_graph[a, i] = -1.
+            current_graph[b, i] = 1.
+        current_graph = current_graph[1:,:]  # remove slack node as we assume it can provide requried current // todo: reform this so nodes other than 0 can be slack
+        voltage_graph = current_graph.T
+        self.busNo = busNo
+        self.vbase = vbase
+        self.sbase = sbase
+        self.node_a = node_a
+        self.node_b = node_b
+        self.line_z_pu = line_z_pu
+        self.load_powers = load_powers
+        self.current_graph = current_graph
+        self.voltage_graph = voltage_graph
+        self.V_slack = 1. + 0.j
+        self.zbase = zbase
+        self.length = length
+        self.zpk = z3/ zbase
