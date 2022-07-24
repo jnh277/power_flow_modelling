@@ -8,6 +8,7 @@ from scipy.optimize import minimize
 import jax.numpy as jnp
 import jax.scipy as jscipy
 from jax import jit, grad
+from tqdm import tqdm
 
 """ 
     First we simulate a single branch network using lindistflow
@@ -148,13 +149,6 @@ def numpy_grad(theta, xhat, varhat):
 def numpy_cost(theta, xhat, varhat):
     return np.array(Q_obj(theta, xhat, varhat))
 
-# theta0 = 0.01*np.random.rand(8,)
-# theta0 = np.hstack([R.flatten(), X.flatten()])
-# # theta0 =
-# # theta0 = length_true
-#
-# res = minimize(Q_obj, theta0, bounds=[(0, None)]*len(theta0))
-# theta = res.x
 
 theta = 0.1 * np.ones(len(length_true) * 2)
 # theta = np.array(length_true)
@@ -162,12 +156,11 @@ sigmahat = 1.
 sigma_list = [sigmahat]
 theta_list = [theta]
 mse = []
-M = 50
-for i in range(M):
-    # Rhat = Rpkm * theta
-    # Xhat = Xpkm * theta
-    Rhat = theta[:N - 1]
-    Xhat = theta[N - 1:]
+M = 25
+Rhat = theta[:N - 1]
+Xhat = theta[N - 1:]
+C = build_C(inv_current_graph, inv_voltage_graph, Rhat, Xhat)[0]
+for i in tqdm(range(M), desc='Running EM'):
 
     xhat, varhat = E_step(Rhat, Xhat, sigmahat)
 
@@ -178,12 +171,12 @@ for i in range(M):
     theta = res.x
     theta_list.append(theta)
 
-
-
+    Rhat = theta[:N - 1]
+    Xhat = theta[N - 1:]
     C = build_C(inv_current_graph, inv_voltage_graph, Rhat, Xhat)[0]
     # Sigma = (1/T)* ((y - C @ xhat) @ (y - C @ xhat).T + C @ varhat @ C.T)
     # Sigma = ((y - C @ xhat) @ (y - C @ xhat).T + C @ varhat @ C.T)
-    Sigma = ((y - C @ xhat) @ (y - C @ xhat).T + C @ varhat @ C.T) / (T/(M-i))  # need to do this to slow down convergence of sigma
+    Sigma = ((M-i)/T)*((y - C @ xhat) @ (y - C @ xhat).T + C @ varhat @ C.T)  # need to do this to slow down convergence of sigma
     sigmahat = np.mean(np.sqrt(Sigma.diagonal()))
     sigma_list.append(sigmahat)
 

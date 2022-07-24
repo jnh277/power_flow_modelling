@@ -47,6 +47,7 @@ def linearApproximateDistflow(p_loads, q_loads, R, X, inv_voltage_graph, inv_cur
 
 p = np.random.rand(N-1, T)
 q = 0.5*np.random.rand(N-1, T)
+# q = p * (0.2 + 0.4*np.random.rand(N-1, T))
 
 U, p_line, q_line = linearApproximateDistflow(p, q, R, X, inv_voltage_graph, inv_current_graph, T)
 
